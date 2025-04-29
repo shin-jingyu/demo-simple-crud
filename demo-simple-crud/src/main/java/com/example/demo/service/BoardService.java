@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.controller.dto.BoardDto;
+import com.example.demo.controller.dto.BoardDto.ReadBoard;
+import com.example.demo.controller.dto.BoardDto.UpdateBoard;
+import com.example.demo.controller.dto.BoardDto.CreateBoard;
 import com.example.demo.domain.Board;
 import com.example.demo.domain.BoardStatus;
 import com.example.demo.mapper.BoardDtoMapper;
@@ -15,8 +18,10 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -24,11 +29,15 @@ public class BoardService implements CreactUseCase, UpdateUseCase, DeleteUseCase
 
     private final BoardRepository boardRepository;
     private final BoardEntityMapper boardEntityMapper;
+    private final BoardDtoMapper boardDtoMapper;
 
     @Override
-    public Board create(BoardDto boardDto) {
-        var board = boardEntityMapper.toEntity(boardDto);
-        return boardRepository.save(board);
+    public Board create(CreateBoard createBoard) {
+        var boardEntity = boardEntityMapper.toCreateEntity(createBoard);
+        var board = boardEntity.toBuilder()
+                .status(BoardStatus.ACTIVE)
+                .build();
+        return boardDtoMapper.toDomain(boardRepository.save(board));
     }
 
     @Override
@@ -37,40 +46,36 @@ public class BoardService implements CreactUseCase, UpdateUseCase, DeleteUseCase
         var boardId = boardRepository.existsById(id);
         if(boardId) {
             var board = boardRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Board not found"));;
-            board.statusUpdate(BoardStatus.REMOVED);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));;
+            board.update(BoardStatus.REMOVED);
         }
-
     }
 
     @Override
     @Transactional
-    public Board update(BoardDto boardDto) {
-        var board = boardEntityMapper.toEntity(boardDto);
+    public Board update(UpdateBoard updateBoard) {
+        var board = boardEntityMapper.toUpdateEntity(updateBoard);
         var boardExists = boardRepository.existsById(board.getId());
 
         if (boardExists) {
             var existingBoard = boardRepository.findById(board.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Board not found"));
-
-            existingBoard.update(
-                    board.getTitle(),
-                    board.getContent(),
-                    board.getStatus() != null ?  board.getStatus() : BoardStatus.ACTIVE
-            );
-
-            return existingBoard;
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));
+            existingBoard.update(board.getTitle(), board.getContent());
+            return boardDtoMapper.toDomain(existingBoard);
         }
         throw new EntityNotFoundException("Board not found");
     }
 
     @Override
-    public Page<Board> readAll(Pageable pageable) {
-        return null;
+    public Page<ReadBoard> readAll(Pageable pageable) {
+        var boards = boardRepository.findAll(pageable).map(boardDtoMapper::toDomain);
+        return boards.map(ReadBoard::new);
     }
 
     @Override
-    public Board readOne(Long id) {
-        return null;
+    public ReadBoard readOne(Long id) {
+        var boardEntity = boardRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found"));
+        return boardDtoMapper.toBoardReadDto(boardDtoMapper.toDomain(boardEntity));
     }
 }

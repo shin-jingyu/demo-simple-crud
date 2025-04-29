@@ -1,8 +1,8 @@
 package com.example.demo.usecase;
 
-import com.example.demo.controller.dto.BoardDto;
+import com.example.demo.controller.dto.BoardDto.UpdateBoard;
 import com.example.demo.domain.Board;
 
 public interface UpdateUseCase {
-    Board update(BoardDto boardDto);
+    Board update(UpdateBoard boardDto);
 }

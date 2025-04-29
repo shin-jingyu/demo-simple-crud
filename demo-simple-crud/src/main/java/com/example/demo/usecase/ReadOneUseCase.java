@@ -1,7 +1,7 @@
 package com.example.demo.usecase;
 
-import com.example.demo.domain.Board;
+import com.example.demo.controller.dto.BoardDto.ReadBoard;
 
 public interface ReadOneUseCase {
-    Board readOne(Long id);
+    ReadBoard readOne(Long id);
 }
