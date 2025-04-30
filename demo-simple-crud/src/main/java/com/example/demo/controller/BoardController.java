@@ -14,6 +14,7 @@ import com.example.demo.usecase.UpdateUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -44,7 +45,7 @@ public class BoardController {
     }
 
     @GetMapping
-    public Page<ReadBoard> readBoards(@PageableDefault(size = 10, page = 0) Pageable pageable) {
+    public Page<ReadBoard> readBoards(@PageableDefault(size = 10, page = 0, sort = "id", direction = Sort.Direction.DESC ) Pageable pageable) {
         return readAllUseCase.readAll(pageable);
     }
 
@@ -60,9 +61,9 @@ public class BoardController {
         deleteUseCase.delete(boardId);
     }
 
-    @PutMapping
+    @PutMapping("/{boardId}")
     @ResponseStatus(HttpStatus.OK)
-    public UpdateBoard update(@Validated @RequestBody UpdateBoard updateBoard) {
-        return boardDtoMapper.toBoardUpdateDto(updateUseCase.update(updateBoard));
+    public UpdateBoard update(@Validated @RequestBody UpdateBoard updateBoard, @PathVariable("boardId") Long boardId) {
+        return boardDtoMapper.toBoardUpdateDto(updateUseCase.update(updateBoard, boardId));
     }
 }
